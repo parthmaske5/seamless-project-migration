@@ -34,7 +34,7 @@ function AuthChooser() {
             <Link
               key={role}
               to={meta.authPath}
-              search={{ redirect }}
+              search={redirect ? { redirect } : {}}
               className={`card-soft group block p-8 ${meta.tone}`}
             >
               <span className="grid size-14 place-items-center rounded-2xl bg-card text-primary shadow-soft">
