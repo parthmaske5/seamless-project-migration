@@ -37,6 +37,8 @@ describe("teacher listing validation", () => {
       location: "Selangor",
       feePerHour: -5,
       bio: "",
+      tagline: "",
+      years: 3,
     });
     expect(result.success).toBe(false);
   });

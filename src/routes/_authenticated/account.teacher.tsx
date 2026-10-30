@@ -1,7 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { BookOpen, Clock, Loader2, MapPin, Pencil, ShieldCheck, UserPlus } from "lucide-react";
+import { BookOpen, ExternalLink, Inbox, Loader2, MapPin, Pencil, ShieldCheck, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -54,6 +54,12 @@ function TeacherDashboard() {
   });
 
   const teacher = teacherQuery.data;
+  const enquiriesQuery = useQuery({
+    queryKey: ["enquiries", teacher?.id],
+    queryFn: async () =>
+      (await supabase.from("tutor_enquiries").select("*").eq("teacher_profile_id", teacher!.id).order("created_at", { ascending: false }).limit(20)).data ?? [],
+    enabled: !!teacher?.id,
+  });
   useEffect(() => {
     if (teacher && !teacher.completed_at) setDialogOpen(true);
   }, [teacher]);
@@ -162,10 +168,27 @@ function TeacherDashboard() {
                     <ShieldCheck className="size-4 shrink-0" /> Only you can edit this listing.
                   </div>
                 </div>
-                <p className="rounded-2xl bg-butter px-4 py-3 text-sm font-semibold">
-                  <Clock className="mr-1 inline size-4" /> The public tutor profile page is coming in a later step — your
-                  listing details are saved and ready.
-                </p>
+                {teacher?.status === "approved" && (
+                  <Button variant="pill-outline" asChild>
+                    <Link to="/tutors/$id" params={{ id: teacher.id }}><ExternalLink /> View my public profile</Link>
+                  </Button>
+                )}
+                <div className="card-soft p-7">
+                  <h2 className="flex items-center gap-2 text-xl font-extrabold"><Inbox className="size-5 text-primary" /> Student enquiries</h2>
+                  {(enquiriesQuery.data ?? []).length === 0 ? (
+                    <p className="mt-3 text-sm text-muted-foreground">No enquiries yet. They'll appear here when students connect with you.</p>
+                  ) : (
+                    <ul className="mt-4 space-y-3">
+                      {enquiriesQuery.data!.map((q) => (
+                        <li key={q.id} className="rounded-2xl bg-secondary/60 px-4 py-3 text-sm">
+                          <p className="font-bold">{q.subject} · {q.education_level}</p>
+                          {q.message && <p className="mt-1 text-muted-foreground">{q.message}</p>}
+                          <p className="mt-1 text-xs text-muted-foreground">{new Date(q.created_at).toLocaleString()}{q.student_user_id ? " · signed-in student" : " · guest visitor"}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
                 <p className="flex items-center gap-2 text-sm text-muted-foreground">
                   <MapPin className="size-4" /> Students browse the directory without an account, so a complete listing
                   helps you get discovered.
