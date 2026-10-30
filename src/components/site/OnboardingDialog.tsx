@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Plus, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,37 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { parseSubjects, studentProfileSchema, teacherProfileSchema, type AppRole } from "@/lib/account";
 import { malaysianLocations, studentLevels } from "@/data/sample";
 import type { Tables } from "@/integrations/supabase/types";
+import { cleanAchievements, cleanAvailability, cleanQualifications } from "@/lib/tutor-data";
+
+type Row = Record<string, string>;
+
+function ListEditor({ label, rows, setRows, fields, addLabel }: {
+  label: string; rows: Row[]; setRows: (r: Row[]) => void; fields: { key: string; placeholder: string }[]; addLabel: string;
+}) {
+  return (
+    <div>
+      <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-muted-foreground">{label}</span>
+      <div className="space-y-2">
+        {rows.map((r, i) => (
+          <div key={i} className="flex items-start gap-2">
+            <div className={`grid flex-1 gap-2 ${fields.length > 2 ? "sm:grid-cols-2" : "sm:grid-cols-2"}`}>
+              {fields.map((f) => (
+                <input key={f.key} className={inputCls} placeholder={f.placeholder} aria-label={`${label} ${f.placeholder}`} value={r[f.key] ?? ""}
+                  onChange={(e) => setRows(rows.map((x, j) => (j === i ? { ...x, [f.key]: e.target.value } : x)))} />
+              ))}
+            </div>
+            <Button type="button" variant="ghost" size="icon" aria-label="Remove" onClick={() => setRows(rows.filter((_, j) => j !== i))}><Trash2 /></Button>
+          </div>
+        ))}
+      </div>
+      {rows.length < 10 && (
+        <Button type="button" variant="pill-outline" size="sm" className="mt-2" onClick={() => setRows([...rows, {}])}><Plus /> {addLabel}</Button>
+      )}
+    </div>
+  );
+}
+
+const toRows = (v: unknown): Row[] => (Array.isArray(v) ? (v as Row[]) : []);
 
 const inputCls =
   "w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold outline-none focus:border-primary";
@@ -40,6 +71,16 @@ export function OnboardingDialog({ role, userId, open, onClose, onSaved, initial
   const [location, setLocation] = useState(initialTeacher?.location ?? "");
   const [fee, setFee] = useState(initialTeacher?.fee_per_hour != null ? String(initialTeacher.fee_per_hour) : "");
   const [bio, setBio] = useState(initialTeacher?.bio ?? "");
+  const [tagline, setTagline] = useState(initialTeacher?.tagline ?? "");
+  const [years, setYears] = useState(initialTeacher?.years_experience != null ? String(initialTeacher.years_experience) : "");
+  const [levels, setLevels] = useState<string[]>(initialTeacher?.levels ?? []);
+  const [curricula, setCurricula] = useState((initialTeacher?.curricula ?? []).join(", "));
+  const [languages, setLanguages] = useState((initialTeacher?.languages ?? []).join(", "));
+  const [skills, setSkills] = useState((initialTeacher?.skills ?? []).join(", "));
+  const [quals, setQuals] = useState<Row[]>(toRows(initialTeacher?.qualifications));
+  const [achievements, setAchievements] = useState<Row[]>(toRows(initialTeacher?.achievements));
+  const [availability, setAvailability] = useState<Row[]>(toRows(initialTeacher?.availability));
+  const [photo, setPhoto] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -66,8 +107,18 @@ export function OnboardingDialog({ role, userId, open, onClose, onSaved, initial
           location,
           feePerHour: fee === "" ? 0 : Number(fee),
           bio,
+          tagline,
+          years: years === "" ? 0 : Number(years),
         });
         if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Please check your details.");
+        let photoPath: string | undefined;
+        if (photo) {
+          if (!photo.type.startsWith("image/")) throw new Error("Profile photo must be an image.");
+          if (photo.size > 5 * 1024 * 1024) throw new Error("Profile photo must be under 5MB.");
+          photoPath = `${userId}/photo-${Date.now()}.${photo.name.split(".").pop()?.toLowerCase() || "jpg"}`;
+          const { error: upErr } = await supabase.storage.from("tutor-photos").upload(photoPath, photo, { contentType: photo.type });
+          if (upErr) throw upErr;
+        }
         const { error: tErr } = await supabase
           .from("teacher_profiles")
           .update({
@@ -77,6 +128,16 @@ export function OnboardingDialog({ role, userId, open, onClose, onSaved, initial
             location: parsed.data.location || null,
             fee_per_hour: fee === "" ? null : parsed.data.feePerHour,
             bio: parsed.data.bio || null,
+            tagline: parsed.data.tagline || null,
+            years_experience: years === "" ? null : parsed.data.years,
+            levels,
+            curricula: parseSubjects(curricula),
+            languages: parseSubjects(languages),
+            skills: parseSubjects(skills),
+            qualifications: cleanQualifications(quals),
+            achievements: cleanAchievements(achievements),
+            availability: cleanAvailability(availability),
+            ...(photoPath ? { photo_url: photoPath } : {}),
             completed_at: new Date().toISOString(),
           })
           .eq("user_id", userId);
@@ -119,7 +180,16 @@ export function OnboardingDialog({ role, userId, open, onClose, onSaved, initial
             </>
           ) : (
             <>
-              <Field label="Qualification">
+              <Field label="Profile photo">
+                <span className="flex items-center gap-2 rounded-xl border border-dashed border-border px-3.5 py-2.5 text-sm font-semibold text-muted-foreground">
+                  <Upload className="size-4" /> {photo ? photo.name : initialTeacher?.photo_url ? "Photo uploaded — choose a file to replace" : "Choose an image (max 5MB)"}
+                  <input type="file" accept="image/*" className="sr-only" onChange={(e) => setPhoto(e.target.files?.[0] ?? null)} />
+                </span>
+              </Field>
+              <Field label="Tagline">
+                <input className={inputCls} value={tagline} onChange={(e) => setTagline(e.target.value)} placeholder="e.g. Making Mathematics simpler, one concept at a time." />
+              </Field>
+              <Field label="Headline / main qualification">
                 <input className={inputCls} value={qualification} onChange={(e) => setQualification(e.target.value)} placeholder="e.g. B.Ed. (Mathematics), UPSI" />
               </Field>
               <Field label="Subjects (comma separated)">
@@ -143,10 +213,41 @@ export function OnboardingDialog({ role, userId, open, onClose, onSaved, initial
                   </select>
                 </Field>
               </div>
-              <Field label="Hourly fee (RM)">
-                <input className={inputCls} type="number" min={0} step={5} value={fee} onChange={(e) => setFee(e.target.value)} placeholder="e.g. 60" />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Hourly fee (RM)">
+                  <input className={inputCls} type="number" min={0} step={5} value={fee} onChange={(e) => setFee(e.target.value)} placeholder="e.g. 60" />
+                </Field>
+                <Field label="Years of experience">
+                  <input className={inputCls} type="number" min={0} max={60} value={years} onChange={(e) => setYears(e.target.value)} placeholder="e.g. 8" />
+                </Field>
+              </div>
+              <fieldset>
+                <legend className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-muted-foreground">Levels you teach</legend>
+                <div className="flex flex-wrap gap-2">
+                  {studentLevels.map((l) => (
+                    <label key={l} className={`cursor-pointer rounded-full border px-3 py-1.5 text-xs font-bold ${levels.includes(l) ? "border-primary bg-mint text-primary" : "border-border"}`}>
+                      <input type="checkbox" className="sr-only" checked={levels.includes(l)} onChange={(e) => setLevels(e.target.checked ? [...levels, l] : levels.filter((x) => x !== l))} />
+                      {l}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+              <Field label="Curricula (comma separated)">
+                <input className={inputCls} value={curricula} onChange={(e) => setCurricula(e.target.value)} placeholder="e.g. KSSM, IGCSE, IB" />
               </Field>
-              <Field label="Short bio">
+              <Field label="Languages spoken (comma separated)">
+                <input className={inputCls} value={languages} onChange={(e) => setLanguages(e.target.value)} placeholder="e.g. English, Bahasa Melayu" />
+              </Field>
+              <Field label="Additional skillsets (comma separated)">
+                <input className={inputCls} value={skills} onChange={(e) => setSkills(e.target.value)} placeholder="e.g. Exam techniques, Public speaking" />
+              </Field>
+              <ListEditor label="Qualifications & education" rows={quals} setRows={setQuals} addLabel="Add qualification"
+                fields={[{ key: "title", placeholder: "Qualification" }, { key: "institution", placeholder: "Institution" }, { key: "year", placeholder: "Year" }]} />
+              <ListEditor label="Achievements & certificates" rows={achievements} setRows={setAchievements} addLabel="Add achievement"
+                fields={[{ key: "title", placeholder: "Title" }, { key: "issuer", placeholder: "Issued by" }, { key: "year", placeholder: "Year" }, { key: "url", placeholder: "Certificate link (https://…)" }]} />
+              <ListEditor label="Availability" rows={availability} setRows={setAvailability} addLabel="Add time slot"
+                fields={[{ key: "day", placeholder: "Day, e.g. Saturday" }, { key: "time", placeholder: "Time, e.g. 9am – 12pm" }]} />
+              <Field label="About you">
                 <textarea className={`${inputCls} min-h-24 resize-y`} value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Tell students about your experience and teaching style." />
               </Field>
             </>

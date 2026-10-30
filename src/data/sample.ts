@@ -19,7 +19,7 @@ export type TeachingMode = "Online" | "In-person" | "Online & In-person";
 
 export type Tutor = {
   id: string; name: string; photo?: string; qualification: string; subjects: string[];
-  experience: string; years: number; mode: TeachingMode; fee: number; location: string; levels: string[];
+  experience: string; years: number; mode: TeachingMode | ""; fee: number; location: string; levels: string[];
 };
 
 // Sample/demo profiles only — not real tutors.
