@@ -10,7 +10,7 @@ import { defaultFilters, filterTutors, type TutorFilters } from "@/lib/tutor-fil
 
 const URL = "https://screenshot-to-screen-60.lovable.app/tutors";
 
-export const Route = createFileRoute("/tutors")({
+export const Route = createFileRoute("/tutors/")({
   head: () => ({
     meta: [
       { title: "Find Tutors — PUPUK Education" },
