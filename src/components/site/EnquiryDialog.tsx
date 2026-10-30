@@ -22,7 +22,7 @@ export function EnquiryDialog({ open, onClose, teacherProfileId, tutorName, subj
   const [level, setLevel] = useState("");
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<Partial<Record<"level" | "subject" | "message", string>>>({});
   const [state, setState] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const levelOptions = levels.length ? levels : studentLevels;
 
