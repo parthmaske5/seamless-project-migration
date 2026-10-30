@@ -52,7 +52,9 @@ export const teacherProfileSchema = z.object({
   teachingMode: z.enum(["", "Online", "In-person", "Online & In-person"]),
   location: z.string().trim().max(60, "Location is too long"),
   feePerHour: z.number().min(0, "Fee cannot be negative").max(10000, "Fee looks too high"),
-  bio: z.string().trim().max(1000, "Bio must be under 1000 characters"),
+  bio: z.string().trim().max(2000, "About section must be under 2000 characters"),
+  tagline: z.string().trim().max(120, "Tagline must be under 120 characters"),
+  years: z.number().int("Years must be a whole number").min(0, "Years cannot be negative").max(60, "Years looks too high"),
 });
 
 /** "Math, Physics , " -> ["Math", "Physics"]; capped at 10 entries. */

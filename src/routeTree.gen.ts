@@ -17,6 +17,7 @@ import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AuthStudentRouteImport } from './routes/auth.student'
 import { Route as AuthTeacherRouteImport } from './routes/auth.teacher'
 import { Route as TutorsIndexRouteImport } from './routes/tutors.index'
+import { Route as TutorsIdRouteImport } from './routes/tutors.$id'
 import { Route as AuthenticatedAccountStudentRouteImport } from './routes/_authenticated/account.student'
 import { Route as AuthenticatedAccountTeacherRouteImport } from './routes/_authenticated/account.teacher'
 
@@ -59,6 +60,11 @@ const TutorsIndexRoute = TutorsIndexRouteImport.update({
   path: '/tutors/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TutorsIdRoute = TutorsIdRouteImport.update({
+  id: '/tutors/$id',
+  path: '/tutors/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedAccountStudentRoute =
   AuthenticatedAccountStudentRouteImport.update({
     id: '/account/student',
@@ -78,6 +84,7 @@ export interface FileRoutesByFullPath {
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/student': typeof AuthStudentRoute
   '/auth/teacher': typeof AuthTeacherRoute
+  '/tutors/$id': typeof TutorsIdRoute
   '/auth/': typeof AuthIndexRoute
   '/tutors/': typeof TutorsIndexRoute
   '/account/student': typeof AuthenticatedAccountStudentRoute
@@ -88,6 +95,7 @@ export interface FileRoutesByTo {
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/student': typeof AuthStudentRoute
   '/auth/teacher': typeof AuthTeacherRoute
+  '/tutors/$id': typeof TutorsIdRoute
   '/auth': typeof AuthIndexRoute
   '/tutors': typeof TutorsIndexRoute
   '/account/student': typeof AuthenticatedAccountStudentRoute
@@ -101,6 +109,7 @@ export interface FileRoutesById {
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/student': typeof AuthStudentRoute
   '/auth/teacher': typeof AuthTeacherRoute
+  '/tutors/$id': typeof TutorsIdRoute
   '/auth/': typeof AuthIndexRoute
   '/tutors/': typeof TutorsIndexRoute
   '/_authenticated/account/student': typeof AuthenticatedAccountStudentRoute
@@ -114,6 +123,7 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/auth/student'
     | '/auth/teacher'
+    | '/tutors/$id'
     | '/auth/'
     | '/tutors/'
     | '/account/student'
@@ -124,6 +134,7 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/auth/student'
     | '/auth/teacher'
+    | '/tutors/$id'
     | '/auth'
     | '/tutors'
     | '/account/student'
@@ -136,6 +147,7 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/auth/student'
     | '/auth/teacher'
+    | '/tutors/$id'
     | '/auth/'
     | '/tutors/'
     | '/_authenticated/account/student'
@@ -146,6 +158,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRouteWithChildren
+  TutorsIdRoute: typeof TutorsIdRoute
   TutorsIndexRoute: typeof TutorsIndexRoute
 }
 
@@ -207,6 +220,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TutorsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/tutors/$id': {
+      id: '/tutors/$id'
+      path: '/tutors/$id'
+      fullPath: '/tutors/$id'
+      preLoaderRoute: typeof TutorsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/account/student': {
       id: '/_authenticated/account/student'
       path: '/account/student'
@@ -257,6 +277,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRouteWithChildren,
+  TutorsIdRoute: TutorsIdRoute,
   TutorsIndexRoute: TutorsIndexRoute,
 }
 export const routeTree = rootRouteImport
