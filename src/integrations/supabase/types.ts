@@ -72,46 +72,76 @@ export type Database = {
       }
       teacher_profiles: {
         Row: {
+          achievements: Json
+          availability: Json
           bio: string | null
           completed_at: string | null
           created_at: string
+          curricula: string[]
           fee_per_hour: number | null
           id: string
+          languages: string[]
+          levels: string[]
           location: string | null
+          photo_url: string | null
           qualification: string | null
+          qualifications: Json
+          skills: string[]
           status: string
           subjects: string[]
+          tagline: string | null
           teaching_mode: string | null
           updated_at: string
           user_id: string
+          years_experience: number | null
         }
         Insert: {
+          achievements?: Json
+          availability?: Json
           bio?: string | null
           completed_at?: string | null
           created_at?: string
+          curricula?: string[]
           fee_per_hour?: number | null
           id?: string
+          languages?: string[]
+          levels?: string[]
           location?: string | null
+          photo_url?: string | null
           qualification?: string | null
+          qualifications?: Json
+          skills?: string[]
           status?: string
           subjects?: string[]
+          tagline?: string | null
           teaching_mode?: string | null
           updated_at?: string
           user_id: string
+          years_experience?: number | null
         }
         Update: {
+          achievements?: Json
+          availability?: Json
           bio?: string | null
           completed_at?: string | null
           created_at?: string
+          curricula?: string[]
           fee_per_hour?: number | null
           id?: string
+          languages?: string[]
+          levels?: string[]
           location?: string | null
+          photo_url?: string | null
           qualification?: string | null
+          qualifications?: Json
+          skills?: string[]
           status?: string
           subjects?: string[]
+          tagline?: string | null
           teaching_mode?: string | null
           updated_at?: string
           user_id?: string
+          years_experience?: number | null
         }
         Relationships: [
           {
@@ -119,6 +149,47 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: true
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tutor_enquiries: {
+        Row: {
+          created_at: string
+          education_level: string
+          id: string
+          message: string | null
+          status: string
+          student_user_id: string | null
+          subject: string
+          teacher_profile_id: string
+        }
+        Insert: {
+          created_at?: string
+          education_level: string
+          id?: string
+          message?: string | null
+          status?: string
+          student_user_id?: string | null
+          subject: string
+          teacher_profile_id: string
+        }
+        Update: {
+          created_at?: string
+          education_level?: string
+          id?: string
+          message?: string | null
+          status?: string
+          student_user_id?: string | null
+          subject?: string
+          teacher_profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tutor_enquiries_teacher_profile_id_fkey"
+            columns: ["teacher_profile_id"]
+            isOneToOne: false
+            referencedRelation: "teacher_profiles"
             referencedColumns: ["id"]
           },
         ]
