@@ -1,14 +1,18 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { useMemo, useState, type ReactNode } from "react";
-import { Clock, GraduationCap, MapPin, RotateCcw, Search, SearchX } from "lucide-react";
+import { RotateCcw, Search, SearchX, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
-import { tutors, malaysianLocations, studentLevels, type Tutor } from "@/data/sample";
+import { TutorCard } from "@/components/site/TutorCard";
+import { malaysianLocations, studentLevels } from "@/data/sample";
 import { defaultFilters, filterTutors, type TutorFilters } from "@/lib/tutor-filters";
+import { fetchApprovedTutors } from "@/lib/tutor-data";
 
 const URL = "https://screenshot-to-screen-60.lovable.app/tutors";
+
+export const tutorsQuery = queryOptions({ queryKey: ["approved-tutors"], queryFn: fetchApprovedTutors });
 
 export const Route = createFileRoute("/tutors/")({
   head: () => ({
@@ -23,10 +27,24 @@ export const Route = createFileRoute("/tutors/")({
     ],
     links: [{ rel: "canonical", href: URL }],
   }),
+  loader: ({ context }) => context.queryClient.ensureQueryData(tutorsQuery),
   component: TutorsPage,
+  errorComponent: TutorsError,
+  notFoundComponent: () => <div className="p-10 text-center">No tutors found.</div>,
 });
 
-const subjects = Array.from(new Set(tutors.flatMap((t) => t.subjects))).sort();
+function TutorsError() {
+  const router = useRouter();
+  return (
+    <div className="min-h-screen"><SiteHeader />
+      <div className="card-soft mx-auto my-16 max-w-md p-8 text-center" role="alert">
+        <h1 className="text-xl font-extrabold">We couldn't load tutors right now</h1>
+        <Button variant="pill" className="mt-5" onClick={() => router.invalidate()}>Try again</Button>
+      </div>
+    </div>
+  );
+}
+
 const selectCls = "w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm font-semibold outline-none focus:border-primary";
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
@@ -34,10 +52,12 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 }
 
 function TutorsPage() {
+  const { data: tutors } = useSuspenseQuery(tutorsQuery);
   const [f, setF] = useState<TutorFilters>(defaultFilters);
-  const [contact, setContact] = useState<Tutor | null>(null);
   const set = <K extends keyof TutorFilters>(k: K, v: TutorFilters[K]) => setF((p) => ({ ...p, [k]: v }));
-  const results = useMemo(() => filterTutors(tutors, f), [f]);
+  const results = useMemo(() => filterTutors(tutors, f), [tutors, f]);
+  const subjects = useMemo(() => Array.from(new Set(tutors.flatMap((t) => t.subjects))).sort(), [tutors]);
+  const levels = useMemo(() => Array.from(new Set([...studentLevels, ...tutors.flatMap((t) => t.levels)])), [tutors]);
   const dirty = JSON.stringify(f) !== JSON.stringify(defaultFilters);
   const reset = () => setF(defaultFilters);
 
@@ -85,7 +105,7 @@ function TutorsPage() {
             </Field>
             <Field label="Student level">
               <select className={selectCls} value={f.level} onChange={(e) => set("level", e.target.value)}>
-                <option value="">All levels</option>{studentLevels.map((s) => <option key={s}>{s}</option>)}
+                <option value="">All levels</option>{levels.map((s) => <option key={s}>{s}</option>)}
               </select>
             </Field>
             <Field label={`Hourly fee (RM${f.minFee} – RM${f.maxFee})`}>
@@ -107,9 +127,14 @@ function TutorsPage() {
                 </select>
               </label>
             </div>
-            <p className="mb-5 rounded-2xl bg-butter px-4 py-3 text-sm font-semibold">These are sample demo profiles to show how the directory works — not real tutors.</p>
 
-            {results.length === 0 ? (
+            {tutors.length === 0 ? (
+              <div className="card-soft p-10 text-center">
+                <Users className="mx-auto size-10 text-primary" />
+                <h3 className="mt-4 text-xl font-extrabold">No approved tutors yet</h3>
+                <p className="mt-2 text-muted-foreground">Tutor listings appear here once they've been reviewed and approved. Check back soon!</p>
+              </div>
+            ) : results.length === 0 ? (
               <div className="card-soft p-10 text-center">
                 <SearchX className="mx-auto size-10 text-primary" />
                 <h3 className="mt-4 text-xl font-extrabold">No tutors match those filters</h3>
@@ -118,47 +143,13 @@ function TutorsPage() {
               </div>
             ) : (
               <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-                {results.map((t) => (
-                  <article key={t.id} className="card-soft relative flex flex-col overflow-hidden">
-                    <span className="absolute left-3 top-3 z-10 rounded-full bg-card px-3 py-1 text-xs font-bold text-muted-foreground shadow-soft">Demo profile</span>
-                    {t.photo ? <img src={t.photo} alt={t.name} loading="lazy" width={816} height={816} className="aspect-[4/3] w-full object-cover" />
-                      : <div className="grid aspect-[4/3] place-items-center bg-mint font-display text-5xl font-extrabold text-primary" aria-hidden>{t.name.split(" ").slice(0, 2).map((w) => w[0]).join("")}</div>}
-                    <div className="flex flex-1 flex-col p-6">
-                      <h3 className="text-xl font-extrabold">{t.name}</h3>
-                      <p className="text-sm text-muted-foreground">{t.qualification}</p>
-                      <div className="mt-3 flex flex-wrap gap-1.5">
-                        {t.subjects.map((s) => <span key={s} className="rounded-full bg-secondary px-3 py-1 text-xs font-bold text-secondary-foreground">{s}</span>)}
-                      </div>
-                      <div className="mt-4 space-y-1.5 text-sm text-muted-foreground">
-                        <p className="flex items-center gap-2"><Clock className="size-4" /> {t.experience} experience</p>
-                        <p className="flex items-center gap-2"><MapPin className="size-4" /> {t.location} · {t.mode}</p>
-                        <p className="flex items-center gap-2"><GraduationCap className="size-4" /> {t.levels.join(", ")}</p>
-                      </div>
-                      <div className="mt-auto flex items-center justify-between border-t border-border pt-4">
-                        <p><span className="font-display text-2xl font-extrabold">RM{t.fee}</span><span className="text-sm text-muted-foreground">/hour</span></p>
-                        <Button variant="pill" onClick={() => setContact(t)}>Contact</Button>
-                      </div>
-                    </div>
-                  </article>
-                ))}
+                {results.map((t) => <TutorCard key={t.id} tutor={t} />)}
               </div>
             )}
           </section>
         </div>
       </main>
       <SiteFooter />
-
-      <Dialog open={!!contact} onOpenChange={(o) => !o && setContact(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Contacting tutors is coming soon</DialogTitle>
-            <DialogDescription>
-              {contact?.name} is a sample demo profile. Full tutor profiles and messaging aren't available yet, so no message will be sent.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter><Button variant="pill" onClick={() => setContact(null)}>Got it</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
