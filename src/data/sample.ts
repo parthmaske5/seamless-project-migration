@@ -1,6 +1,9 @@
-import tutor1 from "@/assets/tutor-1.jpg";
-import tutor2 from "@/assets/tutor-2.jpg";
-import tutor3 from "@/assets/tutor-3.jpg";
+import tutor1Asset from "@/assets/tutor-1.jpg.asset.json";
+const tutor1 = tutor1Asset.url;
+import tutor2Asset from "@/assets/tutor-2.jpg.asset.json";
+const tutor2 = tutor2Asset.url;
+import tutor3Asset from "@/assets/tutor-3.jpg.asset.json";
+const tutor3 = tutor3Asset.url;
 
 export type Category = "tutors" | "materials" | "freelancers";
 
