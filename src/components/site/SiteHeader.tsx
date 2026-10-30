@@ -1,6 +1,10 @@
 import { useState } from "react";
-import { Menu, X, Sprout } from "lucide-react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Menu, X, Sprout, LogOut, GraduationCap, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useSession } from "@/lib/use-session";
+import { getMyRoles, signOutEverywhere } from "@/lib/account-data";
 
 export const navLinks = [
   { label: "Home", href: "/" },
@@ -22,8 +26,31 @@ export function Logo() {
   );
 }
 
+function useAccountNav() {
+  const { user, loading } = useSession();
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const rolesQuery = useQuery({
+    queryKey: ["roles", user?.id],
+    queryFn: () => getMyRoles(user!.id),
+    enabled: !!user,
+  });
+  const roles = rolesQuery.data ?? [];
+
+  async function signOut() {
+    await queryClient.cancelQueries();
+    queryClient.clear();
+    await signOutEverywhere();
+    navigate({ to: "/auth", replace: true });
+  }
+
+  return { user, loading, roles, signOut };
+}
+
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
+  const { user, loading, roles, signOut } = useAccountNav();
+
   return (
     <header className="sticky top-0 z-50 border-b border-border/60 bg-background/85 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
@@ -36,8 +63,36 @@ export function SiteHeader() {
           ))}
         </nav>
         <div className="hidden items-center gap-2 lg:flex">
-          <Button variant="ghost" className="rounded-full font-semibold">Login</Button>
-          <Button variant="pill" className="font-semibold">Sign Up</Button>
+          {loading ? null : user ? (
+            <>
+              {roles.includes("student") && (
+                <Button variant="ghost" className="rounded-full font-semibold" asChild>
+                  <Link to="/account/student">
+                    <GraduationCap /> Student area
+                  </Link>
+                </Button>
+              )}
+              {roles.includes("teacher") && (
+                <Button variant="ghost" className="rounded-full font-semibold" asChild>
+                  <Link to="/account/teacher">
+                    <BookOpen /> Teacher dashboard
+                  </Link>
+                </Button>
+              )}
+              <Button variant="pill-outline" className="font-semibold" onClick={signOut}>
+                <LogOut /> Sign out
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="ghost" className="rounded-full font-semibold" asChild>
+                <Link to="/auth">Login</Link>
+              </Button>
+              <Button variant="pill" className="font-semibold" asChild>
+                <Link to="/auth">Sign Up</Link>
+              </Button>
+            </>
+          )}
         </div>
         <button className="rounded-full p-2 lg:hidden" aria-label={open ? "Close menu" : "Open menu"} onClick={() => setOpen(!open)}>
           {open ? <X /> : <Menu />}
@@ -50,10 +105,41 @@ export function SiteHeader() {
               {l.label}
             </a>
           ))}
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <Button variant="pill-outline">Login</Button>
-            <Button variant="pill">Sign Up</Button>
-          </div>
+          {!loading &&
+            (user ? (
+              <div className="mt-3 space-y-2">
+                {roles.includes("student") && (
+                  <Button variant="pill-outline" className="w-full" asChild>
+                    <Link to="/account/student" onClick={() => setOpen(false)}>
+                      <GraduationCap /> Student area
+                    </Link>
+                  </Button>
+                )}
+                {roles.includes("teacher") && (
+                  <Button variant="pill-outline" className="w-full" asChild>
+                    <Link to="/account/teacher" onClick={() => setOpen(false)}>
+                      <BookOpen /> Teacher dashboard
+                    </Link>
+                  </Button>
+                )}
+                <Button variant="pill" className="w-full" onClick={signOut}>
+                  <LogOut /> Sign out
+                </Button>
+              </div>
+            ) : (
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <Button variant="pill-outline" asChild>
+                  <Link to="/auth" onClick={() => setOpen(false)}>
+                    Login
+                  </Link>
+                </Button>
+                <Button variant="pill" asChild>
+                  <Link to="/auth" onClick={() => setOpen(false)}>
+                    Sign Up
+                  </Link>
+                </Button>
+              </div>
+            ))}
         </div>
       )}
     </header>
