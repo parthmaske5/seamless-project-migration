@@ -10,3 +10,6 @@
 - [x] Verified end-to-end in preview: sign-up, confirm, sign-in, role add-on, onboarding skip/save, pending-approval badge, sign-out; build OK, 12 tests pass
 
 Next step (not started, per spec): individual tutor profile page.
+- [x] Live approved tutors on /tutors with filters
+- [x] Public tutor profile page + Connect enquiry form
+- [x] Teachers can enter tagline, photo, levels, curricula, languages, skills, qualifications, achievements, availability
